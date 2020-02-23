@@ -18,9 +18,9 @@ from kittens.tui.operations import (
 
 
 class Search(Handler):
-    def __init__(self, cached_values, window_id, error=''):
+    def __init__(self, cached_values, window_ids, error=''):
         self.cached_values = cached_values
-        self.window_id = window_id
+        self.window_ids = window_ids
         self.error = error
         self.line_edit = LineEdit()
         last_search = cached_values.get('last_search', '')
@@ -43,7 +43,7 @@ class Search(Handler):
 
     def draw_screen(self):
         self.write(clear_screen())
-        if self.window_id:
+        if self.window_ids:
             input_text = self.line_edit.current_input
             if self.text_marked:
                 self.line_edit.current_input = styled(input_text, reverse=True)
@@ -97,9 +97,11 @@ class Search(Handler):
                 self.switch_mode()
                 self.refresh()
             elif key_event.key is UP:
-                remote_control.main(['', 'kitten', self.match_arg(), 'scroll_mark.py'])
+                for match_arg in self.match_args():
+                    remote_control.main(['', 'kitten', match_arg, 'scroll_mark.py'])
             elif key_event.key is DOWN:
-                remote_control.main(['', 'kitten', self.match_arg(), 'scroll_mark.py', 'next'])
+                for match_arg in self.match_args():
+                    remote_control.main(['', 'kitten', match_arg, 'scroll_mark.py', 'next'])
 
         if key_event is enter_key:
             self.quit(0)
@@ -117,28 +119,31 @@ class Search(Handler):
     def on_resize(self, new_size):
         self.refresh()
 
-    def match_arg(self):
-        return f'--match=id:{self.window_id}'
+    def match_args(self):
+        return [f'--match=id:{window_id}' for window_id in self.window_ids]
 
     def mark(self):
-        if not self.window_id:
+        if not self.window_ids:
             return
         text = self.line_edit.current_input
         if text:
             match_case = 'i' if text.islower() else ''
             match_type = match_case + self.mode
-            remote_control.main(['', 'create-marker', self.match_arg(), match_type, '1', text])
+            for match_arg in self.match_args():
+                remote_control.main(['', 'create-marker', match_arg, match_type, '1', text])
         else:
             self.remove_mark()
 
     def remove_mark(self):
-            remote_control.main(['', 'remove-marker', self.match_arg()])
+        for match_arg in self.match_args():
+            remote_control.main(['', 'remove-marker', match_arg])
 
     def quit(self, return_code):
         self.cached_values['last_search'] = self.line_edit.current_input
         self.remove_mark()
         if return_code:
-            remote_control.main(['', 'scroll-window', self.match_arg(), 'end'])
+            for match_arg in self.match_args():
+                remote_control.main(['', 'scroll-window', match_arg, 'end'])
         self.quit_loop(return_code)
 
 
@@ -148,7 +153,7 @@ def main(args):
     except:
         pass
 
-    window_id = None
+    window_ids = []
     error = ''
     ls_output = run(['kitty', '@', 'ls'], stdout=PIPE)
     ls_json = json.loads(ls_output.stdout.decode())
@@ -156,13 +161,11 @@ def main(args):
         if os_window['is_focused']:
             for tab in os_window['tabs']:
                 if tab['is_focused']:
-                    for kitty_window in tab['windows']:
-                        if not kitty_window['is_focused']:
-                            window_id = kitty_window['id']
-    if not window_id:
+                    window_ids = [w['id'] for w in tab['windows'] if not w['is_focused']]
+    if not window_ids:
         error = 'Could not find window to search in'
 
     loop = Loop()
     with cached_values_for('search') as cached_values:
-        handler = Search(cached_values, window_id, error)
+        handler = Search(cached_values, window_ids, error)
         loop.loop(handler)
