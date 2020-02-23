@@ -153,17 +153,25 @@ def main(args):
     except:
         pass
 
-    window_ids = []
     error = ''
-    ls_output = run(['kitty', '@', 'ls'], stdout=PIPE)
-    ls_json = json.loads(ls_output.stdout.decode())
-    for os_window in ls_json:
-        if os_window['is_focused']:
+    if len(args) < 2 or not args[1].isdigit():
+        error = 'Error: Window id must be provided as the first argument.'
+
+    window_id = int(args[1])
+    window_ids = [window_id]
+    if len(args) > 2 and args[2] == '--all-windows':
+        ls_output = run(['kitty', '@', 'ls'], stdout=PIPE)
+        ls_json = json.loads(ls_output.stdout.decode())
+        current_tab = None
+        for os_window in ls_json:
             for tab in os_window['tabs']:
-                if tab['is_focused']:
-                    window_ids = [w['id'] for w in tab['windows'] if not w['is_focused']]
-    if not window_ids:
-        error = 'Could not find window to search in'
+                for kitty_window in tab['windows']:
+                    if kitty_window['id'] == window_id:
+                        current_tab = tab
+        if current_tab:
+            window_ids = [w['id'] for w in current_tab['windows'] if not w['is_focused']]
+        else:
+            error = 'Error: Could not find the window id provided.'
 
     loop = Loop()
     with cached_values_for('search') as cached_values:
