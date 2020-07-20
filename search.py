@@ -2,6 +2,7 @@ import json
 
 from gettext import gettext as _
 from subprocess import run, PIPE
+from pathlib import Path
 
 from kitty import remote_control
 from kitty.config import cached_values_for
@@ -16,6 +17,7 @@ from kittens.tui.operations import (
     clear_screen, cursor, set_line_wrapping, set_window_title, styled
 )
 
+SCROLLMARK_FILE = Path(__file__).parent.absolute() / "scroll_mark.py"
 
 class Search(Handler):
     def __init__(self, cached_values, window_ids, error=''):
@@ -98,10 +100,10 @@ class Search(Handler):
                 self.refresh()
             elif key_event.key is UP:
                 for match_arg in self.match_args():
-                    remote_control.main(['', 'kitten', match_arg, 'scroll_mark.py'])
+                    remote_control.main(['', 'kitten', match_arg, str(SCROLLMARK_FILE)])
             elif key_event.key is DOWN:
                 for match_arg in self.match_args():
-                    remote_control.main(['', 'kitten', match_arg, 'scroll_mark.py', 'next'])
+                    remote_control.main(['', 'kitten', match_arg, str(SCROLLMARK_FILE), 'next'])
 
         if key_event is enter_key:
             self.quit(0)
