@@ -14,6 +14,29 @@ Map a key to launch the kitten. E.g. for `kitty_mod+/` add this to `kitty.conf`:
 map kitty_mod+/      launch --allow-remote-control kitty +kitten search.py @active-kitty-window-id
 ```
 
+### Alternatively:
+
+Go to the directory where `kitty.conf` lies, run
+
+```
+git clone https://github.com/trygveaa/kitty-kitten-search kitty_search
+```
+
+The alternate directory name is needed to keep python happy. You then have to use as slightly other shortcut:
+
+```
+map kitty_mod+/      launch --allow-remote-control kitty +kitten kitty_search/search.py @active-kitty-window-id
+```
+
+If you are managing your dotfiles as a git directory, you can also add kitty-search as a submodule instead of cloning:
+
+```
+git submodule add https://github.com/trygveaa/kitty-kitten-search kitty_search
+```
+
+Now you only have to commit `.gitmodules` in your git directory and you are golden.
+
+
 ## Usage
 
 Pressing the key you mapped will open a window where you can type your search. The search is performed immediately as you type each key, however currently it does not scroll to a match automatically if it is outside of the current content shown.
