@@ -1,4 +1,5 @@
 import json
+import re
 
 from gettext import gettext as _
 from subprocess import run, PIPE
@@ -13,6 +14,31 @@ from kittens.tui.loop import Loop
 from kittens.tui.operations import (
     clear_screen, cursor, set_line_wrapping, set_window_title, styled
 )
+
+NON_SPACE_PATTERN = re.compile(r'\S+')
+SPACE_PATTERN = re.compile(r'\s+')
+SPACE_PATTERN_END = re.compile(r'\s+$')
+SPACE_PATTERN_START = re.compile(r'^\s+')
+
+NON_ALPHANUM_PATTERN = re.compile(r'[^\w\d]+')
+NON_ALPHANUM_PATTERN_END = re.compile(r'[^\w\d]+$')
+NON_ALPHANUM_PATTERN_START = re.compile(r'^[^\w\d]+')
+ALPHANUM_PATTERN = re.compile(r'[\w\d]+')
+
+
+def reindex(text, pattern, right=False):
+    if not right:
+        m = pattern.search(text)
+    else:
+        matches = [x for x in pattern.finditer(text) if x]
+        if not matches:
+            raise ValueError
+        m = matches[-1]
+
+    if not m:
+        raise ValueError
+
+    return m.span()
 
 SCROLLMARK_FILE = Path(__file__).parent.absolute() / "scroll_mark.py"
 
@@ -90,6 +116,109 @@ class Search(Handler):
             self.refresh()
         elif key_event.matches('ctrl+e'):
             self.line_edit.end()
+            self.refresh()
+        elif key_event.matches('ctrl+backspace') or key_event.matches('ctrl+w'):
+            before, _ = self.line_edit.split_at_cursor()
+
+            try:
+                start, _ = reindex(before, SPACE_PATTERN_END, right=True)
+            except ValueError:
+                start = -1
+
+            try:
+                space = before[:start].rindex(' ')
+            except ValueError:
+                space = 0
+            self.line_edit.backspace(len(before) - space)
+            self.refresh()
+        elif key_event.matches('ctrl+left') or key_event.matches('ctrl+b'):
+            before, _ = self.line_edit.split_at_cursor()
+            try:
+                start, _ = reindex(before, SPACE_PATTERN_END, right=True)
+            except ValueError:
+                start = -1
+
+            try:
+                space = before[:start].rindex(' ')
+            except ValueError:
+                space = 0
+            self.line_edit.left(len(before) - space)
+            self.refresh()
+        elif key_event.matches('ctrl+right') or key_event.matches('ctrl+f'):
+            _, after = self.line_edit.split_at_cursor()
+            try:
+                _, end = reindex(after, SPACE_PATTERN_START)
+            except ValueError:
+                end = 0
+
+            try:
+                space = after[end:].index(' ') + 1
+            except ValueError:
+                space = len(after)
+            self.line_edit.right(space)
+            self.refresh()
+        elif key_event.matches('alt+backspace') or key_event.matches('alt+w'):
+            before, _ = self.line_edit.split_at_cursor()
+
+            try:
+                start, _ = reindex(before, NON_ALPHANUM_PATTERN_END, right=True)
+            except ValueError:
+                start = -1
+            else:
+                self.line_edit.backspace(len(before) - start)
+                self.refresh()
+                return
+
+            try:
+                start, _ = reindex(before, NON_ALPHANUM_PATTERN, right=True)
+            except ValueError:
+                self.line_edit.backspace(len(before))
+                self.refresh()
+                return
+
+            self.line_edit.backspace(len(before) - (start + 1))
+            self.refresh()
+        elif key_event.matches('alt+left') or key_event.matches('alt+b'):
+            before, _ = self.line_edit.split_at_cursor()
+
+            try:
+                start, _ = reindex(before, NON_ALPHANUM_PATTERN_END, right=True)
+            except ValueError:
+                start = -1
+            else:
+                self.line_edit.left(len(before) - start)
+                self.refresh()
+                return
+
+            try:
+                start, _ = reindex(before, NON_ALPHANUM_PATTERN, right=True)
+            except ValueError:
+                self.line_edit.left(len(before))
+                self.refresh()
+                return
+
+            self.line_edit.left(len(before) - (start + 1))
+            self.refresh()
+        elif key_event.matches('alt+right') or key_event.matches('alt+f'):
+            _, after = self.line_edit.split_at_cursor()
+
+            try:
+                _, end = reindex(after, NON_ALPHANUM_PATTERN_START)
+            except ValueError:
+                end = 0
+            else:
+                self.line_edit.right(end)
+                self.refresh()
+                return
+
+            try:
+                _, end = reindex(after, NON_ALPHANUM_PATTERN)
+            except ValueError:
+                self.line_edit.right(len(after))
+                self.refresh()
+                return
+
+            self.line_edit.right(end - 1)
             self.refresh()
         elif key_event.matches('tab'):
             self.switch_mode()

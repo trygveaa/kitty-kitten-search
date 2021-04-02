@@ -11,7 +11,7 @@ Place the two `.py` files in this repo (`search.py` and `scroll_mark.py`) in the
 Map a key to launch the kitten. E.g. for `kitty_mod+/` add this to `kitty.conf`:
 
 ```
-map kitty_mod+/      launch --allow-remote-control kitty +kitten search.py @active-kitty-window-id
+map kitty_mod+/      launch --location=hsplit --allow-remote-control kitty +kitten search.py @active-kitty-window-id
 ```
 
 ### Alternatively:
@@ -47,5 +47,9 @@ These keys can be used to control the kitten:
 - Tab: Switch between literal match and regex match
 - Ctrl-u: Clear the query
 - Ctrl-a/e: Go to the beginning/end of the query
+- Ctrl-Left/Right: Jump over words by space
+- Ctrl-Backspace: Delete last word by space
+- Alt-Left/Right: Jump over words by non-alphanumeric characters
+- Alt-Backspace: Delete last word by non-alphanumeric characters
 - Enter: Exit the kitten and keep the current scroll position
 - Esc: Exit the kitten and scroll to the bottom of the history
