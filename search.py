@@ -6,9 +6,6 @@ from pathlib import Path
 
 from kitty import remote_control
 from kitty.config import cached_values_for
-from kitty.key_encoding import (
-    BACKSPACE, CTRL, DOWN, ESCAPE, LEFT, RELEASE, RIGHT, TAB, UP, config_mod_map, enter_key
-)
 
 from kittens.tui.handler import Handler
 from kittens.tui.line_edit import LineEdit
@@ -77,7 +74,7 @@ class Search(Handler):
         self.refresh()
 
     def on_key(self, key_event):
-        if self.text_marked and key_event.key not in [TAB, 'LEFT_CONTROL', 'RIGHT_CONTROL', 'LEFT_ALT', 'RIGHT_ALT', 'LEFT_SUPER', 'RIGHT_SUPER']:
+        if self.text_marked and key_event.key not in ['TAB', 'LEFT_CONTROL', 'RIGHT_CONTROL', 'LEFT_ALT', 'RIGHT_ALT', 'LEFT_SHIFT', 'RIGHT_SHIFT', 'LEFT_SUPER', 'RIGHT_SUPER']:
             self.text_marked = False
             self.refresh()
 
@@ -85,32 +82,28 @@ class Search(Handler):
             self.refresh()
             return
 
-        if key_event.type is not RELEASE:
-            if key_event.mods == CTRL and key_event.key == 'U':
-                self.line_edit.clear()
-                self.refresh()
-            elif key_event.mods == CTRL and key_event.key == 'A':
-                self.line_edit.home()
-                self.refresh()
-            elif key_event.mods == CTRL and key_event.key == 'E':
-                self.line_edit.end()
-                self.refresh()
-            elif key_event.key is TAB:
-                self.switch_mode()
-                self.refresh()
-            elif key_event.key is UP:
-                for match_arg in self.match_args():
-                    remote_control.main(['', 'kitten', match_arg, str(SCROLLMARK_FILE)])
-            elif key_event.key is DOWN:
-                for match_arg in self.match_args():
-                    remote_control.main(['', 'kitten', match_arg, str(SCROLLMARK_FILE), 'next'])
-
-        if key_event is enter_key:
+        if key_event.matches('ctrl+u'):
+            self.line_edit.clear()
+            self.refresh()
+        elif key_event.matches('ctrl+a'):
+            self.line_edit.home()
+            self.refresh()
+        elif key_event.matches('ctrl+e'):
+            self.line_edit.end()
+            self.refresh()
+        elif key_event.matches('tab'):
+            self.switch_mode()
+            self.refresh()
+        elif key_event.matches('up'):
+            for match_arg in self.match_args():
+                remote_control.main(['', 'kitten', match_arg, str(SCROLLMARK_FILE)])
+        elif key_event.matches('down'):
+            for match_arg in self.match_args():
+                remote_control.main(['', 'kitten', match_arg, str(SCROLLMARK_FILE), 'next'])
+        elif key_event.matches('enter'):
             self.quit(0)
-        elif key_event.type is RELEASE:
-            if not key_event.mods:
-                if key_event.key is ESCAPE:
-                    self.quit(1)
+        elif key_event.matches('esc'):
+            self.quit(1)
 
     def on_interrupt(self):
         self.quit(1)
