@@ -254,7 +254,10 @@ class Search(Handler):
             match_case = 'i' if text.islower() else ''
             match_type = match_case + self.mode
             for match_arg in self.match_args():
-                remote_control.main(['', 'create-marker', match_arg, match_type, '1', text])
+                try:
+                    remote_control.main(['', 'create-marker', match_arg, match_type, '1', text])
+                except SystemExit:
+                    self.remove_mark()
         else:
             self.remove_mark()
 
