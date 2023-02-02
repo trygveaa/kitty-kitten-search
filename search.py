@@ -16,6 +16,7 @@ from kittens.tui.operations import (
     styled,
 )
 from kitty.config import cached_values_for
+from kitty.key_encoding import EventType
 from kitty.typing import KeyEventType, ScreenSize
 
 NON_SPACE_PATTERN = re.compile(r"\S+")
@@ -113,17 +114,22 @@ class Search(Handler):
         self.refresh()
 
     def on_key(self, key_event: KeyEventType) -> None:
-        if self.text_marked and key_event.key not in [
-            "TAB",
-            "LEFT_CONTROL",
-            "RIGHT_CONTROL",
-            "LEFT_ALT",
-            "RIGHT_ALT",
-            "LEFT_SHIFT",
-            "RIGHT_SHIFT",
-            "LEFT_SUPER",
-            "RIGHT_SUPER",
-        ]:
+        if (
+            self.text_marked
+            and key_event.type == EventType.PRESS
+            and key_event.key
+            not in [
+                "TAB",
+                "LEFT_CONTROL",
+                "RIGHT_CONTROL",
+                "LEFT_ALT",
+                "RIGHT_ALT",
+                "LEFT_SHIFT",
+                "RIGHT_SHIFT",
+                "LEFT_SUPER",
+                "RIGHT_SUPER",
+            ]
+        ):
             self.text_marked = False
             self.refresh()
 
