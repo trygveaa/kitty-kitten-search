@@ -1,5 +1,6 @@
 import json
 import re
+import subprocess
 from gettext import gettext as _
 from pathlib import Path
 from subprocess import PIPE, run
@@ -14,7 +15,6 @@ from kittens.tui.operations import (
     set_window_title,
     styled,
 )
-from kitty import remote_control
 from kitty.config import cached_values_for
 
 NON_SPACE_PATTERN = re.compile(r"\S+")
@@ -26,6 +26,10 @@ NON_ALPHANUM_PATTERN = re.compile(r"[^\w\d]+")
 NON_ALPHANUM_PATTERN_END = re.compile(r"[^\w\d]+$")
 NON_ALPHANUM_PATTERN_START = re.compile(r"^[^\w\d]+")
 ALPHANUM_PATTERN = re.compile(r"[\w\d]+")
+
+
+def call_remote_control(args):
+    subprocess.run(["kitty", "@", *args], capture_output=True)
 
 
 def reindex(text, pattern, right=False):
@@ -239,12 +243,10 @@ class Search(Handler):
             self.refresh()
         elif key_event.matches("up"):
             for match_arg in self.match_args():
-                remote_control.main(["", "kitten", match_arg, str(SCROLLMARK_FILE)])
+                call_remote_control(["kitten", match_arg, str(SCROLLMARK_FILE)])
         elif key_event.matches("down"):
             for match_arg in self.match_args():
-                remote_control.main(
-                    ["", "kitten", match_arg, str(SCROLLMARK_FILE), "next"]
-                )
+                call_remote_control(["kitten", match_arg, str(SCROLLMARK_FILE), "next"])
         elif key_event.matches("enter"):
             self.quit(0)
         elif key_event.matches("esc"):
@@ -271,8 +273,8 @@ class Search(Handler):
             match_type = match_case + self.mode
             for match_arg in self.match_args():
                 try:
-                    remote_control.main(
-                        ["", "create-marker", match_arg, match_type, "1", text]
+                    call_remote_control(
+                        ["create-marker", match_arg, match_type, "1", text]
                     )
                 except SystemExit:
                     self.remove_mark()
@@ -281,24 +283,21 @@ class Search(Handler):
 
     def remove_mark(self):
         for match_arg in self.match_args():
-            remote_control.main(["", "remove-marker", match_arg])
+            call_remote_control(["remove-marker", match_arg])
 
     def quit(self, return_code):
         self.cached_values["last_search"] = self.line_edit.current_input
         self.remove_mark()
         if return_code:
             for match_arg in self.match_args():
-                remote_control.main(["", "scroll-window", match_arg, "end"])
+                call_remote_control(["scroll-window", match_arg, "end"])
         self.quit_loop(return_code)
 
 
 def main(args):
-    try:
-        remote_control.main(
-            ["", "resize-window", "--self", "--axis=vertical", "--increment", "-100"]
-        )
-    except:
-        pass
+    call_remote_control(
+        ["resize-window", "--self", "--axis=vertical", "--increment", "-100"]
+    )
 
     error = ""
     if len(args) < 2 or not args[1].isdigit():
