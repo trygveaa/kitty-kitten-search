@@ -16,6 +16,7 @@ from kittens.tui.operations import (
     styled,
 )
 from kitty.config import cached_values_for
+from kitty.typing import KeyEventType, ScreenSize
 
 NON_SPACE_PATTERN = re.compile(r"\S+")
 SPACE_PATTERN = re.compile(r"\s+")
@@ -28,11 +29,13 @@ NON_ALPHANUM_PATTERN_START = re.compile(r"^[^\w\d]+")
 ALPHANUM_PATTERN = re.compile(r"[\w\d]+")
 
 
-def call_remote_control(args):
+def call_remote_control(args: list[str]) -> None:
     subprocess.run(["kitty", "@", *args], capture_output=True)
 
 
-def reindex(text, pattern, right=False):
+def reindex(
+    text: str, pattern: re.Pattern[str], right: bool = False
+) -> tuple[int, int]:
     if not right:
         m = pattern.search(text)
     else:
@@ -51,7 +54,9 @@ SCROLLMARK_FILE = Path(__file__).parent.absolute() / "scroll_mark.py"
 
 
 class Search(Handler):
-    def __init__(self, cached_values, window_ids, error=""):
+    def __init__(
+        self, cached_values: dict[str, str], window_ids: list[int], error: str = ""
+    ) -> None:
         self.cached_values = cached_values
         self.window_ids = window_ids
         self.error = error
@@ -63,18 +68,18 @@ class Search(Handler):
         self.update_prompt()
         self.mark()
 
-    def update_prompt(self):
+    def update_prompt(self) -> None:
         self.prompt = "~> " if self.mode == "regex" else "=> "
 
-    def init_terminal_state(self):
+    def init_terminal_state(self) -> None:
         self.write(set_line_wrapping(False))
         self.write(set_window_title(_("Search")))
 
-    def initialize(self):
+    def initialize(self) -> None:
         self.init_terminal_state()
         self.draw_screen()
 
-    def draw_screen(self):
+    def draw_screen(self) -> None:
         self.write(clear_screen())
         if self.window_ids:
             input_text = self.line_edit.current_input
@@ -88,11 +93,11 @@ class Search(Handler):
                 for l in self.error.split("\n"):
                     self.print(l)
 
-    def refresh(self):
+    def refresh(self) -> None:
         self.draw_screen()
         self.mark()
 
-    def switch_mode(self):
+    def switch_mode(self) -> None:
         if self.mode == "regex":
             self.mode = "text"
         else:
@@ -100,14 +105,14 @@ class Search(Handler):
         self.cached_values["mode"] = self.mode
         self.update_prompt()
 
-    def on_text(self, text, in_bracketed_paste):
+    def on_text(self, text: str, in_bracketed_paste: bool = False) -> None:
         if self.text_marked:
             self.text_marked = False
             self.line_edit.clear()
         self.line_edit.on_text(text, in_bracketed_paste)
         self.refresh()
 
-    def on_key(self, key_event):
+    def on_key(self, key_event: KeyEventType) -> None:
         if self.text_marked and key_event.key not in [
             "TAB",
             "LEFT_CONTROL",
@@ -252,19 +257,19 @@ class Search(Handler):
         elif key_event.matches("esc"):
             self.quit(1)
 
-    def on_interrupt(self):
+    def on_interrupt(self) -> None:
         self.quit(1)
 
-    def on_eot(self):
+    def on_eot(self) -> None:
         self.quit(1)
 
-    def on_resize(self, new_size):
+    def on_resize(self, screen_size: ScreenSize) -> None:
         self.refresh()
 
-    def match_args(self):
+    def match_args(self) -> list[str]:
         return [f"--match=id:{window_id}" for window_id in self.window_ids]
 
-    def mark(self):
+    def mark(self) -> None:
         if not self.window_ids:
             return
         text = self.line_edit.current_input
@@ -281,11 +286,11 @@ class Search(Handler):
         else:
             self.remove_mark()
 
-    def remove_mark(self):
+    def remove_mark(self) -> None:
         for match_arg in self.match_args():
             call_remote_control(["remove-marker", match_arg])
 
-    def quit(self, return_code):
+    def quit(self, return_code: int) -> None:
         self.cached_values["last_search"] = self.line_edit.current_input
         self.remove_mark()
         if return_code:
@@ -294,7 +299,7 @@ class Search(Handler):
         self.quit_loop(return_code)
 
 
-def main(args):
+def main(args: list[str]) -> None:
     call_remote_control(
         ["resize-window", "--self", "--axis=vertical", "--increment", "-100"]
     )
