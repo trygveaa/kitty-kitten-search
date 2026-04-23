@@ -13,6 +13,12 @@ def handle_result(
     w = boss.window_id_map.get(target_window_id)
     if w is not None:
         if len(args) > 1 and args[1] != "prev":
-            w.scroll_to_mark(prev=False)
+            # Next match (downward)
+            if not w.scroll_to_mark(prev=False):
+                w.scroll_home()
+                w.scroll_to_mark(prev=False)
         else:
-            w.scroll_to_mark()
+            # Previous match (upward)
+            if not w.scroll_to_mark():
+                w.scroll_end()
+                w.scroll_to_mark()
